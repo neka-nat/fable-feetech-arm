@@ -70,3 +70,6 @@ Pythonからは `from robot_arm import build_arm` で任意ポーズの
   ブラケットウェブがサーボ尾部・前段リンクに当たります。制御側でリミット設定してください。
 - ブラケット推奨: PETG/PLA、壁4周・インフィル40%以上。プレート厚は基本4 mm、
   タブクランプ板はホイール面との段差制約(2.8 mm)から 2.5 mm。
+
+https://github.com/user-attachments/assets/94f7e1a7-6c1c-4f5c-9313-85d68564109c
+
