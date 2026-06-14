@@ -17,15 +17,19 @@ uv run python robot_arm.py --pose "0,-40,70,30,50,0"  # J1..J6 [deg] を指定
 
 ## 3Dビューアでジョイントを動かす
 
-VS Code の **OCP CAD Viewer** 拡張を入れてビューアパネルを開いた状態で:
+ブラウザ上のスライダーで6軸をリアルタイムに動かせます(VS Code不要):
 
 ```bash
-uv run python view_arm.py
+uv run python arm_viewer_viser.py
 ```
 
-`view_arm.py` 冒頭の `POSE = (30, -40, 70, 45, 40, 20)` を書き換えて再実行するたびに、
-干渉チェック付きでビューアの表示が更新されます。ビューア未起動の場合は
-`out/pose_preview.png` にプレビューを書き出します。
+http://127.0.0.1:8080 をブラウザで開くと、右上のJ1〜J6スライダーで関節を
+動かせます。メッシュは起動時に一度だけテッセレートし(初回は ~1分)、以後は
+関節フレームの回転のみ更新するので操作はリアルタイムに反映されます。
+`reset pose` ボタンで全関節を0(直立姿勢)に戻せます。
+
+干渉チェックは行わないので、当たりが疑わしいポーズは `robot_arm.py --pose` で
+確認してください(ペアワイズ干渉チェック付き)。
 
 Pythonからは `from robot_arm import build_arm` で任意ポーズの
 アセンブリ(`Compound`)を取得できます。
