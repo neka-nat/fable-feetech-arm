@@ -63,10 +63,11 @@ for i, name in enumerate(ra.BRACKET_NAMES):
         server.scene.add_mesh_simple(f"{path}/servo", *servo_mesh, color=GRAY)
 
 sliders = []
-for i in range(6):
-    lim = 180 if i in (0, 3, 5) else 100  # web/tail interference limits
+# measured collision-free ranges (bracket sweep vs servo bodies/plugs)
+LIMITS = [(-180, 180), (-95, 95), (-25, 95), (-180, 180), (-95, 95), (-180, 180)]
+for i, (lo, hi) in enumerate(LIMITS):
     sliders.append(server.gui.add_slider(
-        f"J{i + 1} [deg]", min=-lim, max=lim, step=1, initial_value=0))
+        f"J{i + 1} [deg]", min=lo, max=hi, step=1, initial_value=0))
 
 
 def update(_=None):

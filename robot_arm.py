@@ -15,7 +15,13 @@ Measured servo geometry (axis frame, mm):
   bottom tabs  : surface z=-15.9, holes at (-32.8, ±10.25) and (-8.3, ±10.25)
   body         : x in [-35.2, 10.2], y ±12.4, case z ±14.4
   top ridge    : x in [-34.78, -8.51], y ±7.0, protrudes to z=+17.0
-  connector bay: x in [-29.9, -13.05], y ±9.2, protrudes to z=-19.4
+  connector bay: block x in [-29.9, -16.6], y ±9.2, bottom z=-17.7.
+                 Two 3-pin headers, pins Ø2 pointing straight down (-Z) at
+                 x [-15.05, -13.05], y ±2.8/±5.2/±7.6, tips z=-19.4.
+                 Mated plugs slide on from below: plug bodies occupy about
+                 x [-17, -11], y ±9.5, down to z ~ -26.5, wires exiting
+                 further down/backward.  Brackets must keep this volume --
+                 and the annulus it sweeps around the joint -- clear.
 """
 
 import copy
@@ -44,16 +50,19 @@ CONN_X0, CONN_X1 = -29.9, -13.05
 # ------------------------------------------------------------- clearances --
 M3_CLEAR = 3.4 / 2          # wheel screws (servo holes are M3 tap size Ø2.5)
 M2_CLEAR = 2.4 / 2          # tab screws (M2 self tapping into Ø1.5 pilots)
-WHEEL_HOLE_R = 23.0 / 2     # bracket clearance hole around wheel/idler
-IDLER_HOLE_R = 23.5 / 2
+WHEEL_HOLE_R = 23.6 / 2     # bracket clearance hole around wheel/idler
+IDLER_HOLE_R = 24.0 / 2
 HEAD_RECESS_R = 9.5 / 2     # recess over the wheel center screw head
 BOSS_RECESS_R = 7.0 / 2     # recess over the idler center boss
 ACCESS_R = 6.0 / 2          # screwdriver access holes for M3 wheel screws
 
+FIT_AX = 0.35               # print fit: gap per side, wheel/idler grip bosses
+FIT_TAB = 0.2               # print fit: gap per side, tab clamp faces
+
 PLATE_T = 4.0               # structural plate thickness
 CLAMP_T = 2.5               # tab clamp plate thickness (limited by wheel face)
-NARROW = 19.0               # U-bracket inner face when gripping a bare servo
-WIDE = 23.5                 # ... when gripping a servo held by U-link pads
+NARROW = 19.5               # U-bracket inner face when gripping a bare servo
+WIDE = 24.25                # ... when gripping a servo held by U-link pads
 
 CLAMP_DZ = 64.0             # axis offset gripped servo -> clamped servo
 DECK_L = 54.0               # u_link length when ending in a roll-servo deck
@@ -124,30 +133,32 @@ def clamp_mount():
     Pos(0,0,CLAMP_DZ) with its axis along +Y (local), tail pointing down.
     """
     zc = CLAMP_DZ
+    tabf = TAB_TOP + FIT_TAB                   # clamp faces sit FIT_TAB clear
     disc_top = WHEEL_FACE + PLATE_T            # 22.7
     slab_top = disc_top + 5.3                  # 28.0
     p = horn_disc()
-    p += box(-16, 16, -18.4, 18.4, disc_top, slab_top)
+    p += box(-16, 16, -(tabf + CLAMP_T), tabf + CLAMP_T, disc_top, slab_top)
     for hx, hy in HORN_HOLES:                  # M3 driver access through slab
         p -= cyl_z(ACCESS_R, disc_top - 1, slab_top + 1, hx, hy)
 
     # plate A (+y): clamps the next servo's top tabs, wheel pokes through
-    pa = box(-16, 16, TAB_TOP, TAB_TOP + CLAMP_T, disc_top + 0.1, zc)
-    pa += cyl_y(16, TAB_TOP, TAB_TOP + CLAMP_T, x=0, z=zc)
-    pa -= cyl_y(WHEEL_HOLE_R, TAB_TOP - 1, TAB_TOP + CLAMP_T + 1, x=0, z=zc)
-    pa -= box(-7.5, 7.5, TAB_TOP - 1, TAB_TOP + 1.2,  # case top ridge window
-              zc + RIDGE_X0 - 0.5, zc + RIDGE_X1 + 0.5)
+    pa = box(-16, 16, tabf, tabf + CLAMP_T, disc_top + 0.1, zc)
+    pa += cyl_y(16, tabf, tabf + CLAMP_T, x=0, z=zc)
+    pa -= cyl_y(WHEEL_HOLE_R, tabf - 1, tabf + CLAMP_T + 1, x=0, z=zc)
+    pa -= box(-7.5, 7.5, tabf - 1, TAB_TOP + 1.45,  # case top ridge window
+              zc + RIDGE_X0 - 1.5, zc + RIDGE_X1 + 1.5)
     for tx, ty in TOP_TABS:
-        pa -= csk_y(x=ty, z=zc + tx, y_surf=TAB_TOP + CLAMP_T, toward_pos_y=True)
+        pa -= csk_y(x=ty, z=zc + tx, y_surf=tabf + CLAMP_T, toward_pos_y=True)
 
-    # plate B (-y): clamps bottom tabs, idler pokes through
-    pb = box(-16, 16, -TAB_TOP - CLAMP_T, -TAB_TOP, disc_top + 0.1, zc)
-    pb += cyl_y(16, -TAB_TOP - CLAMP_T, -TAB_TOP, x=0, z=zc)
-    pb -= cyl_y(IDLER_HOLE_R, -TAB_TOP - CLAMP_T - 1, -TAB_TOP + 1, x=0, z=zc)
-    pb -= box(-9.7, 9.7, -TAB_TOP - CLAMP_T - 1, -TAB_TOP + 1,  # connector bay
-              zc + CONN_X0 - 0.5, zc + CONN_X1 + 0.5)
+    # plate B (-y): clamps bottom tabs; idler pokes through.  The connector
+    # window passes the mated plugs (they exit down-forward past the plate).
+    pb = box(-16, 16, -tabf - CLAMP_T, -tabf, disc_top + 0.1, zc)
+    pb += cyl_y(16, -tabf - CLAMP_T, -tabf, x=0, z=zc)
+    pb -= cyl_y(IDLER_HOLE_R, -tabf - CLAMP_T - 1, -tabf + 1, x=0, z=zc)
+    pb -= box(-9.7, 9.7, -tabf - CLAMP_T - 1, -TAB_TOP + 1,  # connector bay
+              zc + CONN_X0 - 1.5, zc + CONN_X1 + 3.0)
     for tx, ty in BOT_TABS:
-        pb -= csk_y(x=ty, z=zc + tx, y_surf=-TAB_TOP - CLAMP_T, toward_pos_y=False)
+        pb -= csk_y(x=ty, z=zc + tx, y_surf=-tabf - CLAMP_T, toward_pos_y=False)
 
     return p + pa + pb
 
@@ -161,20 +172,33 @@ def u_link(length, inner, end):
     axis along local +X (tail toward +y).
     """
     outer = inner + PLATE_T
+    tabf = TAB_TOP + FIT_TAB
     x_end = length + (13.5 if end == "pads" else 2.5)
 
     def side_plate(s):  # s=+1 wheel side, s=-1 idler side
-        pl = box(0, x_end, -16, 16, s * inner, s * outer)
-        pl += cyl_z(16, s * inner, s * outer)
+        if s > 0:
+            pl = box(0, x_end, -16, 16, s * inner, s * outer)
+            pl += cyl_z(16, s * inner, s * outer)
+        else:
+            # the gripped servo's mated plugs hang straight down over the
+            # pins (r ~11..19 from the axis, down to z ~ -26.5).  Keep the
+            # joint disc r10.25 and the first 22 mm of plate only 20.5 mm
+            # wide so the rotating link sweeps past the plugs (~±95 deg).
+            pl = box(0, 22, -10.25, 10.25, s * inner, s * outer)
+            pl += box(20, x_end, -16, 16, s * inner, s * outer)
+            pl += cyl_z(10.25, s * inner, s * outer)
         if end == "pads":
             pl += cyl_z(16, s * inner, s * outer, x=length)
-        # contact boss reaching the wheel / idler face
+        # contact boss FIT_AX short of the wheel / idler face; the M3 screws
+        # pull it snug, and assembly gets 2*FIT_AX of insertion clearance
         if s > 0:
-            pl += cyl_z(WHEEL_R, WHEEL_FACE, inner + 0.1)
-            pl -= cyl_z(HEAD_RECESS_R, WHEEL_FACE - 0.1, SCREW_HEAD_TOP + 0.3)
+            pl += cyl_z(WHEEL_R, WHEEL_FACE + FIT_AX, inner + 0.1)
+            pl -= cyl_z(HEAD_RECESS_R, WHEEL_FACE - 0.1,
+                        SCREW_HEAD_TOP + 0.3 + FIT_AX)
         else:
-            pl += cyl_z(WHEEL_R, -inner - 0.1, IDLER_FACE)
-            pl -= cyl_z(BOSS_RECESS_R, IDLER_FACE + 0.1, IDLER_BOSS_BOT - 0.1)
+            pl += cyl_z(WHEEL_R, -inner - 0.1, IDLER_FACE - FIT_AX)
+            pl -= cyl_z(BOSS_RECESS_R, IDLER_FACE + 0.1,
+                        IDLER_BOSS_BOT - 0.1 - FIT_AX)
         for hx, hy in HORN_HOLES:
             pl -= cyl_z(M3_CLEAR, s * (WHEEL_FACE - 2), s * (outer + 1), hx, hy)
         return pl
@@ -187,26 +211,37 @@ def u_link(length, inner, end):
     p += side_plate(-1)
 
     if end == "pads":
+        # bottom tabs: only the tail pair -- the front pair would sit inside
+        # the connector exit window cut below
         for s, hole_r, tabs in (
             (+1, WHEEL_HOLE_R, TOP_TABS),
-            (-1, IDLER_HOLE_R, BOT_TABS),
+            (-1, IDLER_HOLE_R, [t for t in BOT_TABS if t[0] < -30]),
         ):
-            pad = box(length - 36, length, -16, 16, s * TAB_TOP, s * inner)
-            pad += cyl_z(16, s * TAB_TOP, s * inner, x=length)
+            pad = box(length - 36, length, -16, 16, s * tabf, s * inner)
+            pad += cyl_z(16, s * tabf, s * inner, x=length)
             p += pad
-            p -= cyl_z(hole_r, s * (TAB_TOP - 1), s * (outer + 1), x=length)
-            if s > 0:  # case top ridge window through the pad
-                p -= box(length + RIDGE_X0 - 0.5, length + RIDGE_X1 + 0.5,
-                         -7.5, 7.5, TAB_TOP - 1, TAB_TOP + 1.2)
-            else:      # connector bay window, cut 0.9 into the side plate
-                p -= box(length + CONN_X0 - 0.5, length + CONN_X1 + 0.5,
-                         -9.7, 9.7, -TAB_TOP + 1, -inner - 1.4)
+            p -= cyl_z(hole_r, s * (tabf - 1), s * (outer + 1), x=length)
+            if s > 0:  # case top ridge groove along the whole pad (insertion)
+                p -= box(length - 37, length + RIDGE_X1 + 1.5,
+                         -7.5, 7.5, tabf - 1, TAB_TOP + 1.45)
+            else:
+                # connector bay groove along the whole pad (insertion) ...
+                p -= box(length - 37, length + CONN_X1 + 1.0,
+                         -9.7, 9.7, -tabf + 1, -inner - 1.4)
+                # ... and a window through the side plate so the plugs can be
+                # mated from outside and the wires exit below the link
+                p -= box(length - 28.2, length - 9, -10, 10,
+                         -inner + 0.1, -outer - 1)
             for tx, ty in tabs:
                 hole = cyl_z(M2_CLEAR, s * (TAB_TOP - 2), s * (outer + 1),
                              length + tx, ty)
                 cb = cyl_z(2.3, s * (outer - 2.0), s * (outer + 1),
                            length + tx, ty)  # counterbore, head flush
                 p -= hole + cb
+        if length > 80:  # zip-tie holes to dress the wires along the outside
+            for zx in (42, 64):
+                for zy in (-5, 5):
+                    p -= cyl_z(1.75, -inner + 0.1, -outer - 1, zx, zy)
     else:  # deck
         deck = box(length, length + 2.5, -16, 40, -outer, outer)
         deck -= cyl_x(WHEEL_HOLE_R, length - 1, length + 3.5, y=0, z=0)
@@ -218,9 +253,15 @@ def u_link(length, inner, end):
 
 
 def base_part():
-    """Base plate + box body + perimeter deck holding servo 1 vertically."""
-    deck_z0 = BASE_H + TAB_TOP            # 45.9
-    deck_z1 = deck_z0 + CLAMP_T           # 48.4
+    """Base plate + box body + top deck clamping servo 1 vertically.
+
+    The plate has a large opening under the servo: the servo is inserted
+    from below (wheel up through the deck hole, tabs against the deck
+    underside), and its mated plugs hang into the opening.  Wires leave
+    through a groove milled in the plate underside toward the -x edge.
+    """
+    deck_z0 = BASE_H + TAB_TOP + FIT_TAB  # 46.1
+    deck_z1 = deck_z0 + CLAMP_T           # 48.6
     p = box(-62.5, 37.5, -40, 40, 0, 8)   # base plate
     p = fillet(p.edges().filter_by(Axis.Z), 8)
     for bx, by in ((-54, -32), (-54, 32), (29, -32), (29, 32)):
@@ -228,14 +269,17 @@ def base_part():
         p -= cyl_z(4.0, 4.5, 9, bx, by)   # M4 head counterbore
     walls = box(-41.2, 16.2, -18.4, 18.4, 8, deck_z0)
     walls -= box(-37.2, 12.2, -14.4, 14.4, 7, deck_z0 + 1)
-    walls -= cyl_x(6, -42.2, -36.2, y=0, z=22)          # cable exit
+    walls -= box(-42.2, -36.2, -8, 8, 14, 30)   # rear hand/cable slot
     deck = box(-41.2, 16.2, -18.4, 18.4, deck_z0, deck_z1)
     deck -= cyl_z(WHEEL_HOLE_R, deck_z0 - 1, deck_z1 + 1)
-    deck -= box(RIDGE_X0 - 0.5, RIDGE_X1 + 0.5, -7.5, 7.5,
-                deck_z0 - 1, deck_z0 + 1.2)
+    deck -= box(RIDGE_X0 - 1.5, RIDGE_X1 + 1.5, -7.5, 7.5,
+                deck_z0 - 1, BASE_H + TAB_TOP + 1.45)
     for tx, ty in TOP_TABS:
         deck -= csk_z(tx, ty, deck_z1, up=True)
-    return p + walls + deck
+    p = p + walls + deck
+    p -= box(-36.7, 11.7, -13.4, 13.4, -1, 9)   # servo/plug opening
+    p -= box(-63.5, -20, -7, 7, -1, 4)          # underside cable groove
+    return p
 
 
 def flange_part():
@@ -337,8 +381,15 @@ def check_collisions(asm, tol=0.01, verbose=True):
                 continue
             try:
                 inter = a.intersect(b)
-                v = inter.volume if inter is not None else 0
-            except Exception:
+                if inter is None:
+                    v = 0
+                elif hasattr(inter, "volume"):
+                    v = inter.volume
+                else:  # ShapeList: several disjoint intersection lumps
+                    v = sum(s.volume for s in inter)
+            except Exception as e:
+                if verbose:
+                    print(f"  WARN {a.label} x {b.label}: intersect failed ({e})")
                 v = 0
             if v > tol:
                 hits.append((a.label, b.label, v))
